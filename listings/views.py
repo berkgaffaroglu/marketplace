@@ -5,12 +5,18 @@ from rest_framework import status
 from .serializers import ListingSerializer
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
-
+from rest_framework.pagination import PageNumberPagination
 
 @api_view(['GET'])
-def all_listings(request):
-    listing_objects = Listing.objects.all()
-    serializer = ListingSerializer(listing_objects, many=True)
+def query_listings(request):
+    # query = request.GET.get('q')
+    # if query:
+    #     print(query)
+    listing_objects = Listing.objects.all().order_by('-created_at')
+    pagination = PageNumberPagination()
+    page = pagination.paginate_queryset(listing_objects, request)
+    serializer = ListingSerializer(page, many=True)
+    
     return Response(serializer.data)
 
 

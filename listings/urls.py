@@ -1,10 +1,10 @@
 from django.urls import path
-from .views import all_listings, listing_detail, create_listing
+from .views import query_listings, listing_detail, create_listing
 from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('all-listings', all_listings, name='featured_listings'),
+    path('query-listings', query_listings, name='featured_listings'),
     path('listing-detail/<int:pk>', listing_detail, name='listing_detail'),
     path('create-listing', create_listing, name='create_listing')
 ]
