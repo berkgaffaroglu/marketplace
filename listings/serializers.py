@@ -2,11 +2,9 @@ from rest_framework import serializers
 from .models import Listing
 from .models import Listing, ListingImage, ListingComment
 from django.contrib.auth.models import User
+from accounts.serializers import UserSerializer
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id']
+
 
 class ListingImageSerializer(serializers.ModelSerializer):
     class Meta:
@@ -33,18 +31,19 @@ class ListingSerializer(serializers.ModelSerializer):
 
 
     def create(self, validated_data):
+        
         # When serializer.save() is called in views.py, get all images from the request
         images_data = self.context['request'].FILES.getlist('image')  # Access images from request.FILES
 
         # Create the listing first to get a listing object.
-        listing = Listing.objects.create(**validated_data)
-
+        listing = Listing.objects.create(user=self.context['request'].user,**validated_data)
+    
         # After getting the images 
         for image_data in images_data:
             ListingImage.objects.create(listing=listing, image=image_data)
         
         return listing
-    
+
     def get_images(self, obj):
         images_queryset = ListingImage.objects.filter(listing=obj)
         images_serializer = ListingImageSerializer(images_queryset, many=True)

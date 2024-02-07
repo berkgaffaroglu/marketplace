@@ -3,10 +3,14 @@ from .models import Listing
 from rest_framework.response import Response
 from rest_framework import status
 from .serializers import ListingSerializer
-from rest_framework.decorators import api_view, parser_classes
+from rest_framework.decorators import api_view, parser_classes,authentication_classes, permission_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.pagination import PageNumberPagination
+from rest_framework import permissions, status
+from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 
+from accounts.serializers import UserSerializer
+from rest_framework.views import APIView
 @api_view(['GET'])
 def query_listings(request):
     # query = request.GET.get('q')
@@ -22,6 +26,7 @@ def query_listings(request):
 
 @api_view(['GET'])
 def listing_detail(request, pk):
+
     # Filter the listing object with a certain primary key. Primary key's are
     # unique so this will always return one object or none. 
     listing_objects = Listing.objects.filter(pk=pk)
@@ -31,17 +36,22 @@ def listing_detail(request, pk):
 
 
 @api_view(['POST'])
+@authentication_classes([SessionAuthentication])
 @parser_classes([MultiPartParser, FormParser])
+@permission_classes([permissions.IsAuthenticated])
 def create_listing(request):
+    
     serializer = ListingSerializer(data=request.data, context={'request': request})
+    
     if serializer.is_valid():
+        # print(request.data)
         serializer.save()
         return Response(serializer.data)
     else:
+        # print(serializer.errors)
         return Response(status=status.HTTP_400_BAD_REQUEST)
         
     
-
 # TODO
 # @api_view(['POST'])
 # @parser_classes([MultiPartParser, FormParser])
