@@ -7,32 +7,28 @@ from rest_framework.decorators import api_view, parser_classes,authentication_cl
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import permissions, status
-from rest_framework.authentication import SessionAuthentication, TokenAuthentication
+from rest_framework.authentication import SessionAuthentication
 
-from accounts.serializers import UserSerializer
-from rest_framework.views import APIView
+
+
 @api_view(['GET'])
 def query_listings(request):
-    # query = request.GET.get('q')
-    # if query:
-    #     print(query)
     listing_objects = Listing.objects.all().order_by('-created_at')
     pagination = PageNumberPagination()
     page = pagination.paginate_queryset(listing_objects, request)
     serializer = ListingSerializer(page, many=True)
-    
     return Response(serializer.data)
 
 
 @api_view(['GET'])
 def listing_detail(request, pk):
-
-    # Filter the listing object with a certain primary key. Primary key's are
-    # unique so this will always return one object or none. 
-    listing_objects = Listing.objects.filter(pk=pk)
-    serializer = ListingSerializer(listing_objects, many=True)
-    # Since ListingSerializer returns a list, to return a single object, we get the first item on the list.
-    return Response(serializer.data[0])
+    # Get the listing object with a certain primary key.
+    try:
+        listing = Listing.objects.get(pk=pk)
+    except Listing.DoesNotExist:
+        return Response({"error": f"The listing with id:{pk} doesn't exist."}, status=status.HTTP_404_NOT_FOUND)
+    serializer = ListingSerializer(listing)
+    return Response(serializer.data)
 
 
 @api_view(['POST'])
@@ -40,25 +36,43 @@ def listing_detail(request, pk):
 @parser_classes([MultiPartParser, FormParser])
 @permission_classes([permissions.IsAuthenticated])
 def create_listing(request):
-    
     serializer = ListingSerializer(data=request.data, context={'request': request})
-    
     if serializer.is_valid():
-        # print(request.data)
         serializer.save()
         return Response(serializer.data)
     else:
-        # print(serializer.errors)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
         
     
-# TODO
-# @api_view(['POST'])
-# @parser_classes([MultiPartParser, FormParser])
-# def update_listing(request, pk):
-#     serializer = ListingSerializer(data=request.data, context={'request': request})
-#     if serializer.is_valid():
-#         serializer.save()
-#     else:
-#         print(serializer.errors)
-#     return Response(serializer.data)
+@api_view(['POST'])
+@authentication_classes([SessionAuthentication])
+@parser_classes([MultiPartParser, FormParser])
+@permission_classes([permissions.IsAuthenticated])
+def edit_listing(request, pk):
+    listing = Listing.objects.get(pk=pk)
+    if listing.user.pk != request.user.pk:
+        return Response({"error": "You do not have permission to edit this listing."}, status=status.HTTP_403_FORBIDDEN)
+    serializer = ListingSerializer(listing, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()  # Use save() instead of update()
+        return Response(serializer.data)
+    else:
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+@api_view(['POST'])
+@authentication_classes([SessionAuthentication])
+@parser_classes([MultiPartParser, FormParser])
+@permission_classes([permissions.IsAuthenticated])
+def delete_listing(request, pk):
+    try:
+        listing = Listing.objects.get(pk=pk)
+    except Listing.DoesNotExist:
+        return Response({"error": f"The listing with the id:{pk} doesn't exist."}, status=status.HTTP_404_NOT_FOUND)
+    
+    if listing.user.pk != request.user.pk:
+        return Response({"error": "You do not have permission to delete this listing."}, status=status.HTTP_403_FORBIDDEN)
+    
+    # If listing does exist, and the user has the permission to delete, delete it.
+    listing.delete()
+    return Response({"success": f"You successfully deleted the listing {pk}."}, status=status.HTTP_200_OK)

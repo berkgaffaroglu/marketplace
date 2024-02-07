@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from .models import Listing
 from .models import Listing, ListingImage, ListingComment
-from django.contrib.auth.models import User
 from accounts.serializers import UserSerializer
 
 
