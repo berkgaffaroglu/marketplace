@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import query_listings, listing_detail, create_listing, edit_listing, delete_listing
-from django.conf import settings
+
 from django.conf.urls.static import static
 
 urlpatterns = [
@@ -10,5 +10,3 @@ urlpatterns = [
     path('edit-listing/<int:pk>', edit_listing, name='edit_listing'),
     path('delete-listing/<int:pk>', delete_listing, name='delete_listing')
 ]
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

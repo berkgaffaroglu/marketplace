@@ -3,6 +3,7 @@ from django.shortcuts import render
 # Create your views here.
 from django.contrib.auth import get_user_model, login, logout
 from rest_framework.authentication import SessionAuthentication
+from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .serializers import UserRegisterSerializer, UserLoginSerializer, UserSerializer
@@ -25,17 +26,25 @@ class UserRegister(APIView):
 class UserLogin(APIView):
 	permission_classes = (permissions.AllowAny,)
 	authentication_classes = (SessionAuthentication,)
-	##
+	
+
 	def post(self, request):
+		
 		data = request.data
 		assert validate_email(data)
 		assert validate_password(data)
+		
 		serializer = UserLoginSerializer(data=data)
 		if serializer.is_valid(raise_exception=True):
 			user = serializer.check_user(data)
 			login(request, user)
-			return Response(status=status.HTTP_200_OK)
+			session_token = request.session.session_key
+	
 
+			response_data = serializer.data
+			response_data['session_id'] = session_token
+			return Response(data=response_data, status=status.HTTP_200_OK)
+		
 
 class UserLogout(APIView):
 	permission_classes = (permissions.AllowAny,)
